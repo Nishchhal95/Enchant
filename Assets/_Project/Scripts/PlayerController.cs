@@ -26,15 +26,6 @@ public class PlayerController : MonoBehaviour
     private Vector3 _inputVector;
     private Vector3 _movement;
     private bool _isSprinting;
-    
-    [Header("Camera Motion")]
-    [SerializeField] private bool rawMouseLookInput;
-    [SerializeField] private float mouseXSensitivity = 5f;
-    [SerializeField] private float mouseYSensitivity = 5f;
-    [SerializeField] private bool lockCursor;
-    [SerializeField] private CursorLockMode currentCursorLockMode;
-    [SerializeField] private Vector2 inputMouseLookVector;
-    [SerializeField] private Vector2 mouseLookVector;
 
     [SerializeField] private bool isCursorStateEnabled = false;
     [SerializeField] private CharacterController characterController;
@@ -59,9 +50,6 @@ public class PlayerController : MonoBehaviour
     {
         _inputVector.x = rawInput ? Input.GetAxisRaw("Horizontal") : Input.GetAxis("Horizontal");
         _inputVector.z = rawInput ? Input.GetAxisRaw("Vertical") : Input.GetAxis("Vertical");
-
-        inputMouseLookVector.x = rawMouseLookInput ? Input.GetAxisRaw("Mouse X") : Input.GetAxis("Mouse X");
-        inputMouseLookVector.y = rawMouseLookInput ? Input.GetAxisRaw("Mouse Y") : Input.GetAxis("Mouse Y");
 
         _isSprinting = Input.GetKey(KeyCode.LeftShift);
 
