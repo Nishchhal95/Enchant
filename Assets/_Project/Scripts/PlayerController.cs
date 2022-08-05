@@ -30,7 +30,9 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private bool isCursorStateEnabled = false;
     [SerializeField] private CharacterController characterController;
     [SerializeField] private Transform cameraTransform;
-    
+
+    [SerializeField] private Animator playerAnimator;
+
     private void Start()
     {
         EnableCursorState(isCursorStateEnabled);
@@ -52,10 +54,14 @@ public class PlayerController : MonoBehaviour
         _inputVector.z = rawInput ? Input.GetAxisRaw("Vertical") : Input.GetAxis("Vertical");
 
         _isSprinting = Input.GetKey(KeyCode.LeftShift);
+        
+        playerAnimator.SetFloat("MoveInput",  Mathf.Abs(Mathf.Max( _inputVector.x,  _inputVector.z)));
+        playerAnimator.SetBool("IsSprinting",  _isSprinting);
 
         if (Input.GetKeyDown(KeyCode.Space) && _grounded)
         {
             _jump = true;
+            playerAnimator.SetTrigger("Jump");
         }
         if (Input.GetKeyDown(KeyCode.Escape))
         {
