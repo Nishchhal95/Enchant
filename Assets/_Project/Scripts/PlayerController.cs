@@ -6,42 +6,105 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("Ground Check")]
+    [SerializeField] private float groundedOffset = .14f;
+    [SerializeField] private float groundedRadius = .28f;
+    [SerializeField] private LayerMask groundLayer;
+    private bool _grounded;
+
+    [Header("Gravity")]
+    [SerializeField] private float gravity = -15f;
+    [SerializeField] private float jumpHeight = 5f;
+    private float _verticalVelocity;
+    private bool _jump;
+
+    [Header("Movement")]
+    [SerializeField] private bool rawInput;
+    [SerializeField] private float walkSpeed = 5f;
+    [SerializeField] private float sprintSpeed = 10f;
+    private float _playerSpeed = 10f;
+    private Vector3 _inputVector;
+    private Vector3 _movement;
+    private bool _isSprinting;
+
     [SerializeField] private bool isCursorStateEnabled = false;
+    [SerializeField] private CharacterController characterController;
     [SerializeField] private Transform cameraTransform;
-    [SerializeField] private GameControls gameControls;
-    [SerializeField] private Vector2 inputValues;
-    [SerializeField] private float moveSpeed = 10f;
+
+    [SerializeField] private Animator playerAnimator;
+
     private void Start()
     {
         EnableCursorState(isCursorStateEnabled);
     }
 
-    private void OnEnable()
-    {
-        gameControls = new GameControls();
-        gameControls.GameActionMap.Enable();
-    }
-
-    private void OnDisable()
-    {
-        gameControls.GameActionMap.Disable();
-    }
-
     private void Update()
     {
-        HandlePlayerInput();
+        HandleInput();
+        GroundCheck();
+        Jump();
+        ApplyGravity();
         HandlePlayerRotation();
+        Move();
     }
 
-    private void HandlePlayerInput()
+    private void HandleInput()
     {
-        inputValues = gameControls.GameActionMap.Move.ReadValue<Vector2>();
-        transform.Translate(new Vector3(inputValues.x, 0, inputValues.y) * moveSpeed * Time.deltaTime);
+        _inputVector.x = rawInput ? Input.GetAxisRaw("Horizontal") : Input.GetAxis("Horizontal");
+        _inputVector.z = rawInput ? Input.GetAxisRaw("Vertical") : Input.GetAxis("Vertical");
+
+        _isSprinting = Input.GetKey(KeyCode.LeftShift);
+        
+        playerAnimator.SetFloat("MoveInput",  Mathf.Abs(Mathf.Max( _inputVector.x,  _inputVector.z)));
+        playerAnimator.SetBool("IsSprinting",  _isSprinting);
+
+        if (Input.GetKeyDown(KeyCode.Space) && _grounded)
+        {
+            _jump = true;
+            playerAnimator.SetTrigger("Jump");
+        }
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             isCursorStateEnabled = !isCursorStateEnabled;
             EnableCursorState(isCursorStateEnabled);
         }
+    }
+    
+    private void GroundCheck()
+    {
+        Vector3 spherePosition = new Vector3(transform.position.x, 
+            transform.position.y - groundedOffset, transform.position.z);
+        _grounded = Physics.CheckSphere(spherePosition, groundedRadius, groundLayer, QueryTriggerInteraction.Ignore);
+    }
+    
+    private void Jump()
+    {
+        if (_jump && _grounded)
+        {
+            _jump = false;
+            
+            // the square root of H * -2 * G = how much velocity needed to reach desired height
+            _verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+    }
+    
+    private void ApplyGravity()
+    {
+        _verticalVelocity += gravity * Time.deltaTime;
+        if (_grounded && _verticalVelocity < 0.0f)
+        {
+            _verticalVelocity = -2f;
+        }
+    }
+    
+    private void Move()
+    {
+        _playerSpeed = _isSprinting ? sprintSpeed : walkSpeed;
+        
+        _movement = (cameraTransform.right * _inputVector.x * _playerSpeed) +
+                    (cameraTransform.forward * _inputVector.z * _playerSpeed);
+        _movement.y = _verticalVelocity;
+        characterController.Move(_movement * Time.deltaTime);
     }
 
     private void HandlePlayerRotation()
@@ -62,5 +125,18 @@ public class PlayerController : MonoBehaviour
             Cursor.visible = false;
             Cursor.lockState = CursorLockMode.Locked;
         }
+    }
+    
+    private void OnDrawGizmosSelected()
+    {
+        Color transparentGreen = new Color(0.0f, 1.0f, 0.0f, 0.35f);
+        Color transparentRed = new Color(1.0f, 0.0f, 0.0f, 0.35f);
+
+        if (_grounded) Gizmos.color = transparentGreen;
+        else Gizmos.color = transparentRed;
+			
+        // when selected, draw a gizmo in the position of, and matching radius of, the grounded collider
+        Gizmos.DrawSphere(new Vector3(transform.position.x, 
+            transform.position.y - groundedOffset, transform.position.z), groundedRadius);
     }
 }
